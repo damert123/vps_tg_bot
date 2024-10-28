@@ -9,15 +9,15 @@ class SystemStats
 {
     protected SSH2 $ssh;
 
-//    public function __construct($hostname, $username, $privateKeyPath)
-//    {
-//        $this->ssh = new SSH2($hostname);
-//        $key = PublicKeyLoader::load(file_get_contents($privateKeyPath));
-//
-//        if (!$this->ssh->login($username, $key)){
-//            throw new \Exception("Не удалось подключиться к серверу {$hostname} через SSH");
-//        }
-//    }
+    public function __construct($hostname, $username, $privateKeyPath)
+    {
+        $this->ssh = new SSH2($hostname);
+        $key = PublicKeyLoader::load(file_get_contents($privateKeyPath));
+
+        if (!$this->ssh->login($username, $key)){
+            throw new \Exception("Не удалось подключиться к серверу {$hostname} через SSH");
+        }
+    }
 
     public function getHddUsage()
     {
