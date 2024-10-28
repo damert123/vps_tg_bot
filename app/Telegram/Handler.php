@@ -45,8 +45,6 @@ class Handler extends WebhookHandler
                 Button::make('Нагрузка CPU')->action('cpuUsage'),
                 Button::make('Нагрузка RAM')->action('ramUsage'),
                 Button::make('Места на диске')->action('hddUsage'),
-                Button::make('Запустить сервер в майне')->action('serverStartMine'),
-                Button::make('Закрыть сервер в майне')->action('serverStopMine'),
 //                Button::make('Подписаться')
 //                    ->action('subscribe')
 //                    ->param('channel_name', '@fsdfsd'),
