@@ -32,7 +32,7 @@ class CreateServerCommand extends Command
     {
         $hostname = $this->argument('hostname');
         $username = $this->argument('username');
-        $privateKeyPath = $_SERVER['HOME'] . '/.ssh/id_ed25519'; // Путь к вашему приватному ключу
+        $privateKeyPath = $_SERVER['HOME'] . '/.ssh/id_rsa'; // Путь к вашему приватному ключу
         $publicKeyPath = $privateKeyPath . '.pub'; // Путь к публичному ключу
 
 

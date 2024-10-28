@@ -28,6 +28,15 @@ Artisan::command('tester', function () {
 //Schedule::command('monitor')->everyMinute();
 
 //Schedule::command('testInsert')->everyMinute();
+
+//Artisan::command('monitor', function (){
+//    /** @var \DefStudio\Telegraph\Models\TelegraphBot $bot */
+//    /** @var \DefStudio\Telegraph\Models\TelegraphChat $chat */
+//
+//    $bot = \DefStudio\Telegraph\Models\TelegraphBot::find(1);
+//    \DefStudio\Telegraph\Facades\Telegraph::chat(\DefStudio\Telegraph\Models\TelegraphChat::find(1))->message('Привет я пишусь раз в минуту УРА!')->send();
+//
+//});
 Schedule::command('monitor')->everyMinute();
 
 

@@ -15,7 +15,7 @@ class SystemStats
         $key = PublicKeyLoader::load(file_get_contents($privateKeyPath));
 
         if (!$this->ssh->login($username, $key)){
-            throw new \Exception('Не удалось подключиться к серверу {$hostname} через SSH');
+            throw new \Exception("Не удалось подключиться к серверу {$hostname} через SSH");
         }
     }
 
