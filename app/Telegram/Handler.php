@@ -44,7 +44,7 @@ class Handler extends WebhookHandler
             Keyboard::make()->buttons([
                 Button::make('Нагрузка CPU')->action('cpuUsage'),
                 Button::make('Нагрузка RAM')->action('ramUsage'),
-                Button::make('Места на диске!')->action('hddUsage'),
+                Button::make('Места на диске')->action('hddUsage'),
 //                Button::make('Подписаться')
 //                    ->action('subscribe')
 //                    ->param('channel_name', '@fsdfsd'),
