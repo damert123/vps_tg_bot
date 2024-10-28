@@ -59,17 +59,7 @@ class Handler extends WebhookHandler
         Telegraph::chat($this->chat)->message("Использование CPU: $cpuData%")->send();
     }
 
-    public function serverStartMine()
-    {
-        $server = $this->serverMine->startServer(); // Старт сервера по майну
-        Telegraph::chat($this->chat)->message("Сервер по майну запущен!!!")->send();
-    }
 
-    public function serverStopMine()
-    {
-        $server = $this->serverMine->stopServer(); // Закрыть сервера по майну
-        Telegraph::chat($this->chat)->message("Сервер по майну закрыт")->send();
-    }
 
 
 
