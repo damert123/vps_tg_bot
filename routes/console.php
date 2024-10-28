@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -17,3 +18,16 @@ Artisan::command('tester', function () {
         'actions' => 'действия с ботом'
     ])->send());
 });
+
+
+//Artisan::command('monitor', function () {
+//    $this->info('Мониторинг сервера выполняется');
+//
+//})->purpose('Статистика');
+//
+//Schedule::command('monitor')->everyMinute();
+
+//Schedule::command('testInsert')->everyMinute();
+Schedule::command('monitor')->everyMinute();
+
+

@@ -14,13 +14,16 @@ class Handler extends WebhookHandler
 {
 
     private SystemStats $systemStats;
+    private ServerMine $serverMine;
 
 
-
+    /**
+     * @throws \Exception
+     */
     public function __construct() {
         $server = Server::first();
-        $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
-
+        $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
+        $this->serverMine = new ServerMine($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
     }
     public function hello(): void
     {
@@ -42,6 +45,8 @@ class Handler extends WebhookHandler
                 Button::make('Нагрузка CPU')->action('cpuUsage'),
                 Button::make('Нагрузка RAM')->action('ramUsage'),
                 Button::make('Места на диске')->action('hddUsage'),
+                Button::make('Запустить сервер в майне')->action('serverStartMine'),
+                Button::make('Закрыть сервер в майне')->action('serverStopMine'),
 //                Button::make('Подписаться')
 //                    ->action('subscribe')
 //                    ->param('channel_name', '@fsdfsd'),
@@ -55,6 +60,20 @@ class Handler extends WebhookHandler
 //        $this->reply("Использование CPU: $cpuData%");
         Telegraph::chat($this->chat)->message("Использование CPU: $cpuData%")->send();
     }
+
+    public function serverStartMine()
+    {
+        $server = $this->serverMine->startServer(); // Старт сервера по майну
+        Telegraph::chat($this->chat)->message("Сервер по майну запущен!!!")->send();
+    }
+
+    public function serverStopMine()
+    {
+        $server = $this->serverMine->stopServer(); // Закрыть сервера по майну
+        Telegraph::chat($this->chat)->message("Сервер по майну закрыт")->send();
+    }
+
+
 
 
     public function ramUsage(): void
