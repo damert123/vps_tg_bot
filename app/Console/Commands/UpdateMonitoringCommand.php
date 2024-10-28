@@ -30,13 +30,13 @@ class UpdateMonitoringCommand extends Command
 
     private SystemStats $systemStats;
 
-    public function __construct()
-    {
-        parent::__construct();
-        $server = Server::first();
-        $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
-
-    }
+//    public function __construct()
+//    {
+//        parent::__construct();
+//        $server = Server::first();
+//        $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
+//
+//    }
 
     public function handle()
     {
