@@ -14,7 +14,7 @@ class Handler extends WebhookHandler
 {
 
     private SystemStats $systemStats;
-    private ServerMine $serverMine;
+
 
 
     /**
@@ -22,8 +22,7 @@ class Handler extends WebhookHandler
      */
     public function __construct() {
         $server = Server::first();
-        $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
-        $this->serverMine = new ServerMine($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
+        $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
     }
     public function hello(): void
     {
