@@ -42,7 +42,7 @@ class UpdateMonitoringCommand extends Command
             if (!$server) {
                 throw new \Exception("Сервер не найден в базе данных.");
             }
-            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
+            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
             $this->isConnected = true;
 
         } catch (\Exception $e) {
@@ -68,16 +68,6 @@ class UpdateMonitoringCommand extends Command
 
             $serverId = Server::pluck('id')->first();
 
-//            DB::table('server_monitorings')->insert([
-//                'server_id' => $serverId,
-//                'last_cpu_usage' => $cpuUsage,
-//                'last_ram_usage' => $ramUsage,
-//                'last_hdd_usage' => $hddUsage,
-//                'last_update' => now(),
-//                'ssh_connection' => 'success',
-//                'error_message' => null,
-//            ]);
-
             ServerMonitoring::updateOrCreate(
               ['server_id' => $serverId],
               [
@@ -89,7 +79,6 @@ class UpdateMonitoringCommand extends Command
                 'error_message' => null,
 
                 ]
-
             );
 
             $message = "Статистика сервера:\n";
@@ -97,23 +86,7 @@ class UpdateMonitoringCommand extends Command
             $message .= "Использование RAM: $ramUsage%\n";
             $message .= "Места на диске: $hddUsage\n";
 
-//            Telegraph::chat('406210384')->message($message)->send();
-
-
-
-
         } catch (\Exception $e){
-
-//            DB::table('server_monitorings')->insert([
-//                'server_id' => $serverId,
-//                'last_cpu_usage' => null,
-//                'last_ram_usage' => null,
-//                'last_hdd_usage' => null,
-//                'last_update' => now(),
-//                'ssh_connection' => 'error',
-//                'error_message' => $e->getMessage(),
-//            ]);
-
 
             ServerMonitoring::updateOrCreate(
                 ['server_id' => $serverId],

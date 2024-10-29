@@ -30,7 +30,7 @@ class Handler extends WebhookHandler
             if (!$server){
                 throw new \Exception("Сервер не найден в базе данных.");
             }
-            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
+            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
             $this->isConnected = true;
 
         }catch (\Exception $e){
@@ -53,7 +53,7 @@ class Handler extends WebhookHandler
 
 
 
-    public function actions(): void
+    public function server_list(): void
     {
         if (!$this->isConnected){
             $this->reply("Ошибка не удалось подключиться к VPS серверу.");
@@ -67,11 +67,45 @@ class Handler extends WebhookHandler
                 Button::make('Нагрузка CPU')->action('cpuUsage'),
                 Button::make('Нагрузка RAM')->action('ramUsage'),
                 Button::make('Места на диске!!')->action('hddUsage'),
+                Button::make('💻 VPS сервер ' . Server::pluck('hostname')->first())->action('serverStat'),
 //                Button::make('Подписаться')
 //                    ->action('subscribe')
 //                    ->param('channel_name', '@fsdfsd'),
             ])
         )->send();
+    }
+
+    public function serverStat()
+    {
+        if (!$this->isConnected) {
+            $this->reply("Ошибка: не удалось подключиться к VPS серверу.");
+            return;
+        }
+
+        $server = Server::first();
+
+        if (!$server){
+            $this->reply('Ошибка: сервер не найден');
+            return;
+        }
+
+        $serverStats = $server->monitorings; // Через отношение модели Server
+
+        if (!$serverStats){
+            $this->reply("Ошибка: не найдены данные для сервера.");
+        }
+
+        $message = "Статистика сервера: \n";
+        $message .= " ⚙️ Использование CPU: {$serverStats->last_cpu_usage}%\n";
+        $message .= " 💾 Использование RAM: {$serverStats->last_ram_usage}%\n";
+        $message .= " 💿 Места на диске: {$serverStats->last_hdd_usage}\n";
+        $message .= " 📅 Последнее обновление: {$serverStats->last_update}";
+
+        Telegraph::chat($this->chat)->message($message)->send();
+
+
+
+
     }
 
     public function cpuUsage(): void
@@ -85,6 +119,9 @@ class Handler extends WebhookHandler
 //        $this->reply("Использование CPU: $cpuData%");
         Telegraph::chat($this->chat)->message("Использование CPU: $cpuData%")->send();
     }
+
+
+
 
 
 

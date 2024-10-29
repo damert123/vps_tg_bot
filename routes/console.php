@@ -11,11 +11,10 @@ Artisan::command('inspire', function () {
 
 Artisan::command('tester', function () {
    /** @var \DefStudio\Telegraph\Models\TelegraphBot $bot */
-    $bot = \DefStudio\Telegraph\Models\TelegraphBot::find(1);
+    $bot = \DefStudio\Telegraph\Models\TelegraphBot::find(2);
     dd($bot->registerCommands([
-        'hello' => 'Говорит привет',
-        'help' => 'что умеет этот бот',
-        'actions' => 'действия с ботом'
+        'server_add' => 'Добавить сервер',
+        'server_list' => 'Список серверов',
     ])->send());
 });
 
