@@ -11,7 +11,7 @@ Artisan::command('inspire', function () {
 
 Artisan::command('tester', function () {
    /** @var \DefStudio\Telegraph\Models\TelegraphBot $bot */
-    $bot = \DefStudio\Telegraph\Models\TelegraphBot::find(2);
+    $bot = \DefStudio\Telegraph\Models\TelegraphBot::first();
     dd($bot->registerCommands([
         'server_add' => 'Добавить сервер',
         'server_list' => 'Список серверов',
