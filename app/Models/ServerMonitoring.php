@@ -6,5 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class ServerMonitoring extends Model
 {
-    //
+    protected $guarded = false;
+
 }

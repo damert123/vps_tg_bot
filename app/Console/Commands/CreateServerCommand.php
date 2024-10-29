@@ -32,7 +32,7 @@ class CreateServerCommand extends Command
     {
         $hostname = $this->argument('hostname');
         $username = $this->argument('username');
-        $privateKeyPath = $_SERVER['HOME'] . '/.ssh/id_rsa'; // Путь к вашему приватному ключу
+        $privateKeyPath = $_SERVER['HOME'] . '/.ssh/id_ed25519'; // Путь к вашему приватному ключу
         $publicKeyPath = $privateKeyPath . '.pub'; // Путь к публичному ключу
 
 
@@ -54,11 +54,11 @@ class CreateServerCommand extends Command
 
         $publicKey = file_get_contents($publicKeyPath);
 
-        // Если подключение успешно, сохраняем сервер в базе данных
+        // Сохраняем сервер в базе данных
         Server::create([
             'hostname' => $hostname,
             'username' => $username,
-            'ssh_key' => $publicKey, // Здесь можно хранить путь к публичному ключу
+            'ssh_key' => $publicKey,
         ]);
 
         $this->info("Сервер {$hostname} успешно зарегистрирован");

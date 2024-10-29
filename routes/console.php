@@ -37,6 +37,8 @@ Artisan::command('tester', function () {
 //    \DefStudio\Telegraph\Facades\Telegraph::chat(\DefStudio\Telegraph\Models\TelegraphChat::find(1))->message('Привет я пишусь раз в минуту УРА!')->send();
 //
 //});
+
+
 Schedule::command('monitor')->everyMinute();
 
 
