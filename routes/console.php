@@ -15,7 +15,7 @@ Artisan::command('tester', function () {
     dd($bot->registerCommands([
         'server_add' => 'Добавить сервер',
         'server_list' => 'Список серверов',
-        'server_monitoring' => 'Список серверов',
+        'server_monitoring' => 'Статистика серверов',
     ])->send());
 });
 
