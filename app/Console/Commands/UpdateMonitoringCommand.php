@@ -31,27 +31,7 @@ class UpdateMonitoringCommand extends Command
      */
 
     private SystemStats $systemStats;
-//    private bool $isConnected = false; // флаг для отслеживания подключения
 
-//    public function __construct()
-//    {
-//        parent::__construct();
-//
-//        try {
-//            $server = Server::first();
-//            if (!$server) {
-//                throw new \Exception("Сервер не найден в базе данных.");
-//            }
-//            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
-//            $this->isConnected = true;
-//
-//        } catch (\Exception $e) {
-//            $this->isConnected = false;
-//            Log::error("Ошибка при инициализации подключения к серверу: " . $e->getMessage());
-//        }
-//
-//
-//    }
 
     public function handle()
     {
@@ -70,7 +50,7 @@ class UpdateMonitoringCommand extends Command
 
         foreach ($servers as $server){
             try {
-                $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
+                $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
                 $cpuUsage = $this->systemStats->getCpuUsage();
                 $ramUsage = $this->systemStats->getRamUsage();
                 $hddUsage = $this->systemStats->getHddUsage();

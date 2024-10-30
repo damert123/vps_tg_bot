@@ -34,7 +34,7 @@ class Handler extends WebhookHandler
             if (!$server){
                 throw new \Exception("Сервер не найден в базе данных.");
             }
-            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
+            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
             $this->isConnected = true;
 
         }catch (\Exception $e){
@@ -133,7 +133,7 @@ class Handler extends WebhookHandler
         try {
             // Создаем экземпляр SSH2 и загружаем ключ
             $ssh = new SSH2($hostname);
-            $privateKeyPath = getenv('HOME') . '/.ssh/id_ed25519';
+            $privateKeyPath = getenv('HOME') . '/.ssh/id_rsa';
             $key = PublicKeyLoader::load(file_get_contents($privateKeyPath));
 
             // Проверяем подключение
@@ -149,7 +149,7 @@ class Handler extends WebhookHandler
 
     protected function storeServerCredentials($username, $hostname)
     {
-        $privateKeyPath = getenv('HOME') . '/.ssh/id_ed25519'; // Путь к вашему приватному ключу
+        $privateKeyPath = getenv('HOME') . '/.ssh/id_rsa'; // Путь к вашему приватному ключу
         $publicKeyPath = $privateKeyPath . '.pub';
 
         Server::create([
