@@ -208,7 +208,7 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $message = "Статистика серверов:\n";
+        $message = "Статистика серверов:\n\n";
 
         foreach ($servers as $server){
             $serverStats = $server->monitorings()->latest()->first();
@@ -218,7 +218,7 @@ class Handler extends WebhookHandler
                 continue;
             }
 
-            $message = "Сервер: {$server->hostname} \n";
+            $message .= "Сервер: {$server->hostname} \n";
             $message .= " ⚙️ Использование CPU: {$serverStats->last_cpu_usage}%\n";
             $message .= " 💾 Использование RAM: {$serverStats->last_ram_usage}%\n";
             $message .= " 💿 Места на диске: {$serverStats->last_hdd_usage}\n";
@@ -231,14 +231,14 @@ class Handler extends WebhookHandler
 
     }
 
-    public function serverStat()
+    public function serverStat($hostname)
     {
         if (!$this->isConnected) {
             $this->reply("Ошибка: не удалось подключиться к VPS серверу.");
             return;
         }
 
-        $server = Server::first();
+        $server = Server::where('hostname', $hostname)->first();
 
         if (!$server){
             $this->reply('Ошибка: сервер не найден');

@@ -44,7 +44,7 @@ class SystemStats
     {
         $output = $this->ssh->exec("top -bn1 | grep 'Cpu(s)'");
         // Обработка данных (парсинг строки)
-        preg_match('/\d+\.\d+ id/', $output, $matches);
+        preg_match('/(\d+[\.,]\d+)\s+id/', $output, $matches);
         $cpuIdle = floatval($matches[0] ?? 0);  // Процент простоя
         $cpuUsage = 100 - $cpuIdle;  // Занятость CPU
         return number_format($cpuUsage, 2);

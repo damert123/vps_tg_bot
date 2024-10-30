@@ -2,7 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Server;
 use Illuminate\Console\Command;
+use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Net\SSH2;
 
 class GoCommand extends Command
 {
@@ -34,8 +37,25 @@ class GoCommand extends Command
 //        dd(number_format($ramUsage, 2)) ;  // Округление до 2 знаков
 
 //        $output = shell_exec("cat ~/.ssh/id_rsa.pub");
-        $home = getenv('HOME') . '/.ssh/id_rsa';
-        dd($home);
+
+        $server = Server::find(5);
+
+
+
+        $this->ssh = new SSH2($server->hostname);
+        $key = PublicKeyLoader::load(file_get_contents(getenv('HOME') . '/.ssh/id_ed25519'));
+
+        if (!$this->ssh->login($server->username, $key)){
+            throw new \Exception("Не удалось подключиться к серверу {$server->hostname} через SSH");
+        }
+
+        $output = $this->ssh->exec("top -bn1 | grep '%Cpu'");
+        // Обработка данных (парсинг строки)
+        preg_match('/(\d+[\.,]\d+)\s+id/', $output, $matches);
+        $cpuIdle = floatval($matches[0] ?? 0);  // Процент простоя
+        $cpuUsage = 100 - $cpuIdle;  // Занятость CPU
+
+        dd($cpuUsage);
 
 
 //        $output = shell_exec("df -h --total | grep 'total'");
