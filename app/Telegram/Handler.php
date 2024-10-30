@@ -2,14 +2,18 @@
 
 namespace App\Telegram;
 
+use App\Models\ChatStatus;
 use App\Models\Server;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use DefStudio\Telegraph\Models\TelegraphBot;
 use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
+use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Net\SSH2;
 
 class Handler extends WebhookHandler
 {
@@ -30,7 +34,7 @@ class Handler extends WebhookHandler
             if (!$server){
                 throw new \Exception("Сервер не найден в базе данных.");
             }
-            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
+            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
             $this->isConnected = true;
 
         }catch (\Exception $e){
@@ -51,6 +55,109 @@ class Handler extends WebhookHandler
     }
 
 
+    public function server_add(): void
+    {
+        Telegraph::chat($this->chat)->message("Добавьте наш публичный ключ на ваш сервер в файл `~/.ssh/authorized_keys`\n Ключ: ssh-rsa....")->keyboard(
+            Keyboard::make()->buttons([
+                Button::make('✅ Я добавил')->action('serverStore'),
+            ]))->send();
+
+    }
+
+    public function cancelServerAdd()
+    {
+        $this->updateUserStatus(null);
+        Telegraph::chat($this->chat)->message('Добавлене сервера отменено')->send();
+        $this->reply('');
+    }
+
+    public function serverStore()
+    {
+        $this->updateUserStatus('awaiting_credentials');
+        Telegraph::chat($this->chat)->message('Введите реквизиты доступа для сервера в формате username@hostname')->keyboard(
+            Keyboard::make()->buttons([
+                Button::make('❌ Отменить добавление сервера')->action('cancelServerAdd'),
+            ])
+        )->send();
+        $this->reply('');
+
+    }
+
+    protected function updateUserStatus($status): void
+    {
+        ChatStatus::updateOrCreate(
+            ['chat_id' => $this->chat->id],
+            ['status' => $status]
+        );
+    }
+
+    protected function getUserStatus(): ?string
+    {
+        $status = ChatStatus::where('chat_id', $this->chat->id)->first();
+        return $status ? $status->status : null;
+    }
+
+
+    protected function handleChatMessage(Stringable $text): void
+    {
+        if ($this->getUserStatus() !== 'awaiting_credentials'){
+            return;
+        }
+        if (preg_match('/^[\w-]+@[\w.-]+$/', $text)) {
+            // Разделяем сообщение на username и hostname
+            [$username, $hostname] = explode('@', $text);
+
+            if ($this->testSSHConnection($username, $hostname)) {
+                $this->storeServerCredentials($username, $hostname);  // Сохраняем сервер в базе данных
+                Telegraph::chat($this->chat)->message('Сервер успешно добавлен!')->send();
+                $this->updateUserStatus(null);
+            } else {
+                Telegraph::chat($this->chat)->message('Не удалось подключиться к серверу. Проверьте данные и попробуйте еще раз.')->keyboard(
+                    Keyboard::make()->buttons([
+                        Button::make('❌ Отменить добавление сервера')->action('cancelServerAdd'),
+                    ])
+                )->send();
+            }
+        } else {
+            Telegraph::chat($this->chat)->message('Неверный формат. Введите данные в формате username@hostname')->keyboard(
+                Keyboard::make()->buttons([
+                    Button::make('❌ Отменить добавление сервера')->action('cancelServerAdd'),
+                ])
+            )->send();
+        }
+
+    }
+
+    protected function testSSHConnection($username, $hostname)
+    {
+        try {
+            // Создаем экземпляр SSH2 и загружаем ключ
+            $ssh = new SSH2($hostname);
+            $privateKeyPath = getenv('HOME') . '/.ssh/id_ed25519';
+            $key = PublicKeyLoader::load(file_get_contents($privateKeyPath));
+
+            // Проверяем подключение
+            if (!$ssh->login($username, $key)) {
+                throw new \Exception("Не удалось подключиться к серверу {$hostname} через SSH");
+            }
+            return true;  // Успешное подключение
+        } catch (\Exception $e) {
+            Log::error("Ошибка SSH подключения: " . $e->getMessage());
+            return false;  // Подключение не удалось
+        }
+    }
+
+    protected function storeServerCredentials($username, $hostname)
+    {
+        $privateKeyPath = getenv('HOME') . '/.ssh/id_ed25519'; // Путь к вашему приватному ключу
+        $publicKeyPath = $privateKeyPath . '.pub';
+
+        Server::create([
+            'username' => $username,
+            'ssh_key' => $publicKeyPath,
+            'hostname' => $hostname,
+        ]);
+    }
 
 
     public function server_list(): void
@@ -59,20 +166,69 @@ class Handler extends WebhookHandler
             $this->reply("Ошибка не удалось подключиться к VPS серверу.");
             return;
         }
+        $servers = Server::pluck('hostname');
 
+        if ($servers->isEmpty()) {
+            $this->reply("Ошибка: не найдены сервера.");
+            return;
+        }
+
+        $buttons = [];
+
+        foreach ($servers as $hostname){
+            $buttons[] = Button::make('💻 VPS сервер ' . $hostname )
+                ->action('serverStat')->param('hostname', $hostname);
+        }
 
 
         Telegraph::chat($this->chat)->message('Выбери какое-то действие')->keyboard(
-            Keyboard::make()->buttons([
-                Button::make('Нагрузка CPU')->action('cpuUsage'),
-                Button::make('Нагрузка RAM')->action('ramUsage'),
-                Button::make('Места на диске!!')->action('hddUsage'),
-                Button::make('💻 VPS сервер ' . Server::pluck('hostname')->first())->action('serverStat'),
-//                Button::make('Подписаться')
-//                    ->action('subscribe')
-//                    ->param('channel_name', '@fsdfsd'),
-            ])
+            Keyboard::make()->buttons($buttons)
         )->send();
+
+
+//        Telegraph::chat($this->chat)->message('Выбери какое-то действие')->keyboard(
+//            Keyboard::make()->buttons([
+//                Button::make('💻 VPS сервер ' . Server::pluck('hostname')->first())->action('serverStat'),
+//            ])
+//        )->send();
+    }
+
+
+    public function server_monitoring()
+    {
+        if (!$this->isConnected) {
+            $this->reply("Ошибка: не удалось подключиться к VPS серверу.");
+            return;
+        }
+
+        $servers = Server::all();
+
+        if ($servers->isEmpty()) {
+            $this->reply("Ошибка: не найдены сервера.");
+            return;
+        }
+
+        $message = "Статистика серверов:\n";
+
+        foreach ($servers as $server){
+            $serverStats = $server->monitorings()->latest()->first();
+
+            if (!$serverStats){
+                $message .= "Сервер {$server->hostname}: нет доступных данных для статистикиюю\n";
+                continue;
+            }
+
+            $message = "Сервер: {$server->hostname} \n";
+            $message .= " ⚙️ Использование CPU: {$serverStats->last_cpu_usage}%\n";
+            $message .= " 💾 Использование RAM: {$serverStats->last_ram_usage}%\n";
+            $message .= " 💿 Места на диске: {$serverStats->last_hdd_usage}\n";
+            $message .= " 📅 Последнее обновление: {$serverStats->last_update}\n\n";
+
+        }
+
+        Telegraph::chat($this->chat)->message($message)->send();
+        $this->reply('');
+
     }
 
     public function serverStat()
@@ -102,57 +258,14 @@ class Handler extends WebhookHandler
         $message .= " 📅 Последнее обновление: {$serverStats->last_update}";
 
         Telegraph::chat($this->chat)->message($message)->send();
+        $this->reply('');
 
 
 
 
     }
 
-    public function cpuUsage(): void
-    {
-        if (!$this->isConnected){
-            $this->reply("Ошибка не удалось подключиться к VPS серверу.");
-            return;
-        }
 
-        $cpuData = $this->systemStats->getCpuUsage();  // Сбор данных
-//        $this->reply("Использование CPU: $cpuData%");
-        Telegraph::chat($this->chat)->message("Использование CPU: $cpuData%")->send();
-    }
-
-
-
-
-
-
-
-
-
-    public function ramUsage(): void
-    {
-        if (!$this->isConnected){
-            $this->reply("Ошибка не удалось подключиться к VPS серверу.");
-            return;
-        }
-
-        $ramData = $this->systemStats->getRamUsage();  // Сбор данных RAM
-//        $this->reply("Использование RAM: $ramData%");
-        Telegraph::chat($this->chat)->message("Использование RAM: $ramData%")->send();
-
-    }
-
-    public function hddUsage(): void
-    {
-        if (!$this->isConnected){
-            $this->reply("Ошибка не удалось подключиться к VPS серверу.");
-            return;
-        }
-
-        $hddData = $this->systemStats->getHddUsage();  // Сбор данных HDD
-        $this->reply("Использование диска: $hddData");
-        Telegraph::chat($this->chat)->message($hddData)->send();
-
-    }
 
 
     public function subscribe(): void
@@ -160,11 +273,6 @@ class Handler extends WebhookHandler
         $this->reply("Спасибо за подписку на {$this->data->get('channel_name')}");
     }
 
-    public function like()
-    {
-        Telegraph::message('Спасибо за лайк')->send();
-
-    }
 
     protected function handleUnknownCommand(Stringable $text): void
     {

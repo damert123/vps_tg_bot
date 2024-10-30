@@ -31,75 +31,74 @@ class UpdateMonitoringCommand extends Command
      */
 
     private SystemStats $systemStats;
-    private bool $isConnected = false; // флаг для отслеживания подключения
+//    private bool $isConnected = false; // флаг для отслеживания подключения
 
-    public function __construct()
-    {
-        parent::__construct();
-
-        try {
-            $server = Server::first();
-            if (!$server) {
-                throw new \Exception("Сервер не найден в базе данных.");
-            }
-            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
-            $this->isConnected = true;
-
-        } catch (\Exception $e) {
-            $this->isConnected = false;
-            Log::error("Ошибка при инициализации подключения к серверу: " . $e->getMessage());
-        }
-
-
-    }
+//    public function __construct()
+//    {
+//        parent::__construct();
+//
+//        try {
+//            $server = Server::first();
+//            if (!$server) {
+//                throw new \Exception("Сервер не найден в базе данных.");
+//            }
+//            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
+//            $this->isConnected = true;
+//
+//        } catch (\Exception $e) {
+//            $this->isConnected = false;
+//            Log::error("Ошибка при инициализации подключения к серверу: " . $e->getMessage());
+//        }
+//
+//
+//    }
 
     public function handle()
     {
 
-        if (!$this->isConnected) {
-            $this->error("Подключение к серверу не установлено. Операция отменена.");
+        $servers = Server::all(); // Получаем все серваки
+
+        if ($servers->isEmpty()) {
+            $this->error("Не найдено серверов для мониторинга.");
             return;
         }
 
-        try {
-            $cpuUsage = $this->systemStats->getCpuUsage();
-            $ramUsage = $this->systemStats->getRamUsage();
-            $hddUsage = $this->systemStats->getHddUsage();
+//        if (!$this->isConnected) {
+//            $this->error("Подключение к серверу не установлено. Операция отменена.");
+//            return;
+//        }
 
-            $serverId = Server::pluck('id')->first();
+        foreach ($servers as $server){
+            try {
+                $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
+                $cpuUsage = $this->systemStats->getCpuUsage();
+                $ramUsage = $this->systemStats->getRamUsage();
+                $hddUsage = $this->systemStats->getHddUsage();
 
-            ServerMonitoring::updateOrCreate(
-              ['server_id' => $serverId],
-              [
-                'last_cpu_usage' => $cpuUsage,
-                'last_ram_usage' => $ramUsage,
-                'last_hdd_usage' => $hddUsage,
-                'last_update' => now(),
-                'ssh_connection' => 'success',
-                'error_message' => null,
-
-                ]
-            );
-
-            $message = "Статистика сервера:\n";
-            $message .= "Использование CPU: $cpuUsage%\n";
-            $message .= "Использование RAM: $ramUsage%\n";
-            $message .= "Места на диске: $hddUsage\n";
-
-        } catch (\Exception $e){
-
-            ServerMonitoring::updateOrCreate(
-                ['server_id' => $serverId],
-                [
-                    'last_cpu_usage' => null,
-                    'last_ram_usage' => null,
-                    'last_hdd_usage' => null,
-                    'last_update' => now(),
-                    'ssh_connection' => 'error',
-                    'error_message' => $e->getMessage(),
-
-                ]
-            );
+                ServerMonitoring::updateOrCreate(
+                    ['server_id' => $server->id],
+                    [
+                        'last_cpu_usage' => $cpuUsage,
+                        'last_ram_usage' => $ramUsage,
+                        'last_hdd_usage' => $hddUsage,
+                        'last_update' => now(),
+                        'ssh_connection' => 'success',
+                        'error_message' => null,
+                    ]
+                );
+            }catch (\Exception $e){
+                ServerMonitoring::updateOrCreate(
+                    ['server_id' => $server->id],
+                    [
+                        'last_cpu_usage' => null,
+                        'last_ram_usage' => null,
+                        'last_hdd_usage' => null,
+                        'last_update' => now(),
+                        'ssh_connection' => 'error',
+                        'error_message' => $e->getMessage(),
+                    ]
+                );
+            }
         }
 
     }
