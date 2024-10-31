@@ -13,6 +13,7 @@ use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
 use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\File\ASN1\Maps\Characteristic_two;
 use phpseclib3\Net\SSH2;
 
 class Handler extends WebhookHandler
@@ -34,7 +35,7 @@ class Handler extends WebhookHandler
             if (!$server){
                 throw new \Exception("Сервер не найден в базе данных.");
             }
-            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
+            $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
 
 
         }catch (\Exception $e){
@@ -77,7 +78,7 @@ class Handler extends WebhookHandler
 
     public function serverStore()
     {
-        $this->updateUserStatus('awaiting_credentials');
+        $this->updateUserStatus('adding_credentials');
         Telegraph::chat($this->chat)->message('Введите реквизиты доступа для сервера в формате username@hostname')->keyboard(
             Keyboard::make()->buttons([
                 Button::make('❌ Отменить добавление сервера')->action('cancelServerAdd'),
@@ -85,6 +86,18 @@ class Handler extends WebhookHandler
         )->send();
         $this->reply('');
 
+    }
+
+
+    public function serverPassword()
+    {
+        $this->updateUserStatus('adding_password');
+        Telegraph::chat($this->chat)->message('Введите ваш пароль')->keyboard(
+            Keyboard::make()->buttons([
+                Button::make('❌ Отменить добавление сервера')->action('cancelServerAdd'),
+            ])
+        )->send();
+        $this->reply('');
     }
 
     protected function updateUserStatus($status): void
@@ -113,22 +126,44 @@ class Handler extends WebhookHandler
         if ($statusChat === 'adding_name'){
             ChatStatus::updateOrCreate(
                 ['chat_id' => $this->chat->id],
-                ['status' => 'awaiting_credentials', 'server_name' => $text]
+                ['status' => 'adding_credentials', 'server_name' => $text]
             );
             $this->serverStore();
         }
 
-        if ($statusChat !== 'awaiting_credentials'){
-            return;
+        if ($statusChat === 'adding_credentials'){
+            if (preg_match('/^[\w-]+@[\w.-]+$/', $text)) {
+                // Разделяем сообщение на username и hostname
+                [$username, $hostname] = explode('@', $text);
+
+                $chatStatus = ChatStatus::where('chat_id', $this->chat->id)->first();
+                $chatStatus->update(['username' => $username, 'hostname' => $hostname]);
+//                ChatStatus::updateOrCreate(
+//                    ['chat_id' => $this->chat->id],
+//                    ['username' => $username, 'hostname' => $hostname]
+//                );
+
+                $this->serverPassword();
+
+
+            } else {
+                Telegraph::chat($this->chat)->message('Неверный формат. Введите данные в формате username@hostname')->keyboard(
+                    Keyboard::make()->buttons([
+                        Button::make('❌ Отменить добавление сервера')->action('cancelServerAdd'),
+                    ])
+                )->send();
+            }
         }
-        if (preg_match('/^[\w-]+@[\w.-]+$/', $text)) {
-            // Разделяем сообщение на username и hostname
-            [$username, $hostname] = explode('@', $text);
+
+        if ($statusChat === 'adding_password'){
 
             $chatStatus = ChatStatus::where('chat_id', $this->chat->id)->first();
             $serverName = $chatStatus->server_name;
+            $username = $chatStatus->username;
+            $hostname = $chatStatus->hostname;
+            $password = $text;
 
-            if ($this->testSSHConnection($username, $hostname)) {
+            if ($this->testSSHConnection($username, $hostname, $password)) {
                 $this->storeServerCredentials($username, $hostname, $serverName);  // Сохраняем сервер в базе данных
                 Telegraph::chat($this->chat)->message('✅ *Сервер успешно добавлен!*')->send();
                 $this->deleteChatStatus();
@@ -139,26 +174,51 @@ class Handler extends WebhookHandler
                     ])
                 )->send();
             }
-        } else {
-            Telegraph::chat($this->chat)->message('Неверный формат. Введите данные в формате username@hostname')->keyboard(
-                Keyboard::make()->buttons([
-                    Button::make('❌ Отменить добавление сервера')->action('cancelServerAdd'),
-                ])
-            )->send();
         }
+        if ($statusChat !== 'adding_credentials'){
+            return;
+        }
+
+
+
+//        if (preg_match('/^[\w-]+@[\w.-]+$/', $text)) {
+//            // Разделяем сообщение на username и hostname
+//            [$username, $hostname] = explode('@', $text);
+//
+//            $chatStatus = ChatStatus::where('chat_id', $this->chat->id)->first();
+//            $serverName = $chatStatus->server_name;
+//
+//            if ($this->testSSHConnection($username, $hostname)) {
+//                $this->storeServerCredentials($username, $hostname, $serverName);  // Сохраняем сервер в базе данных
+//                Telegraph::chat($this->chat)->message('✅ *Сервер успешно добавлен!*')->send();
+//                $this->deleteChatStatus();
+//            } else {
+//                Telegraph::chat($this->chat)->message('Не удалось подключиться к серверу. Проверьте данные и попробуйте еще раз.')->keyboard(
+//                    Keyboard::make()->buttons([
+//                        Button::make('❌ Отменить добавление сервера')->action('cancelServerAdd'),
+//                    ])
+//                )->send();
+//            }
+//        } else {
+//            Telegraph::chat($this->chat)->message('Неверный формат. Введите данные в формате username@hostname')->keyboard(
+//                Keyboard::make()->buttons([
+//                    Button::make('❌ Отменить добавление сервера')->action('cancelServerAdd'),
+//                ])
+//            )->send();
+//        }
 
     }
 
-    protected function testSSHConnection($username, $hostname)
+    protected function testSSHConnection($username, $hostname, $password)
     {
         try {
             // Создаем экземпляр SSH2 и загружаем ключ
             $ssh = new SSH2($hostname);
-            $privateKeyPath = getenv('HOME') . '/.ssh/id_rsa';
+            $privateKeyPath = getenv('HOME') . '/.ssh/id_ed25519';
             $key = PublicKeyLoader::load(file_get_contents($privateKeyPath));
 
             // Проверяем подключение
-            if (!$ssh->login($username, $key)) {
+            if (!$ssh->login($username, $password)) {
                 throw new \Exception("Не удалось подключиться к серверу {$hostname} через SSH");
             }
             return true;  // Успешное подключение
@@ -170,7 +230,7 @@ class Handler extends WebhookHandler
 
     protected function storeServerCredentials($username, $hostname, $serverName)
     {
-        $privateKeyPath = getenv('HOME') . '/.ssh/id_rsa'; // Путь к вашему приватному ключу
+        $privateKeyPath = getenv('HOME') . '/.ssh/id_ed25519'; // Путь к вашему приватному ключу
         $publicKeyPath = $privateKeyPath . '.pub';
 
         Server::create([

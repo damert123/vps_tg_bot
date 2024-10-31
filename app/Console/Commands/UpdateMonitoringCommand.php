@@ -50,7 +50,7 @@ class UpdateMonitoringCommand extends Command
 
         foreach ($servers as $server){
             try {
-                $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_rsa');
+                $this->systemStats = new SystemStats($server->hostname, $server->username, getenv('HOME') . '/.ssh/id_ed25519');
                 $cpuUsage = $this->systemStats->getCpuUsage();
                 $ramUsage = $this->systemStats->getRamUsage();
                 $hddUsage = $this->systemStats->getHddUsage();

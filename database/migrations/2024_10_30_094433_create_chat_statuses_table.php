@@ -16,6 +16,8 @@ return new class extends Migration
             $table->integer('chat_id');
             $table->string('status')->nullable();
             $table->string('server_name')->nullable();
+            $table->string('username')->nullable();
+            $table->string('hostname')->nullable();
             $table->timestamps();
         });
     }
