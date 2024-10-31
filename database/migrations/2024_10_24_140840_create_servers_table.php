@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('servers', function (Blueprint $table) {
             $table->id();
+            $table->string('server_name');
             $table->string('hostname');
             $table->string('username');
             $table->text('ssh_key');

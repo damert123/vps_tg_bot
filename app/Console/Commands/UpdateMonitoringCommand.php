@@ -61,7 +61,7 @@ class UpdateMonitoringCommand extends Command
                         'last_cpu_usage' => $cpuUsage,
                         'last_ram_usage' => $ramUsage,
                         'last_hdd_usage' => $hddUsage,
-                        'last_update' => now(),
+                        'last_update' => now()->setTimezone('Europe/Moscow'),
                         'ssh_connection' => 'success',
                         'error_message' => null,
                     ]
@@ -73,7 +73,7 @@ class UpdateMonitoringCommand extends Command
                         'last_cpu_usage' => null,
                         'last_ram_usage' => null,
                         'last_hdd_usage' => null,
-                        'last_update' => now(),
+                        'last_update' => now()->setTimezone('Europe/Moscow'),
                         'ssh_connection' => 'error',
                         'error_message' => $e->getMessage(),
                     ]
