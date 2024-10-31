@@ -230,7 +230,7 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $message = "Статистика серверов:\n\n";
+        $message = "📊 Статистика серверов:\n\n";
 
         foreach ($servers as $server){
             $serverStats = $server->monitorings()->latest()->first();
@@ -287,7 +287,7 @@ class Handler extends WebhookHandler
         if ($server->monitorings->ssh_connection == 'error'){
             $message = "⚠️ Ошибка: VPS *{$server->server_name}*: {$server->monitorings->error_message}\n\n ";
         }else{
-            $message = "Статистика сервера: \n";
+            $message = "📊 Статистика сервера: \n";
             $message .= " ⚙️ Использование CPU: {$serverStats->last_cpu_usage}%\n";
             $message .= " 💾 Использование RAM: {$serverStats->last_ram_usage}%\n";
             $message .= " 💿 Места на диске: {$serverStats->last_hdd_usage}\n";
