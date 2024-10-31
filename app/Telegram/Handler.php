@@ -236,7 +236,7 @@ class Handler extends WebhookHandler
             $serverStats = $server->monitorings()->latest()->first();
 
             if (!$serverStats){
-                $message .= "Сервер {$server->hostname}: нет доступных данных для статистики, подождите минуту\n\n";
+                $message .= "VPS *{$server->server_name}*: нет доступных данных для статистики, подождите минуту\n\n";
                 continue;
             }
 
